@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title data-i18n="meta.title">
+      OpenFolder · Two-Tap File Launcher for macOS
+    </title>
+    <meta
+      name="description"
+      content="openfolder is a macOS menu bar tool that opens your most-used files and apps in two taps. Available on the App Store."
+      data-i18n="meta.description"
+      data-i18n-attr="content"
+    />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
+    <style>
+      :root {
+        color-scheme: dark light;
+        /* approximate fixed header height used to offset hero */
+        --header-height: 64px;
+      }
+      body {
+        font-family: "SF Pro Display", "Inter", -apple-system, BlinkMacSystemFont,
+          "Segoe UI", sans-serif;
+        /* Force a clean white surface and dark text as requested */
+        background: #ffffff;
+        color: #0f172a;
+        min-height: 100vh;
+        transition: background 0.25s ease, color 0.2s ease;
+      }
+      /* Ensure light-mode (if toggled) matches the requested white background */
+      .light-mode body {
+        background: #ffffff;
+        color: #0f172a;
+      }
+
+      /* Override utility classes so visual text is predominantly black across the site
+         (this enforces the user's request without changing image paths). */
+      body * {
+        /* color: inherit !important; */
+      }
+      .glass-card {
+        background: linear-gradient(
+            135deg,
+            rgba(255, 255, 255, 0.12),
+            rgba(255, 255, 255, 0.04)
+          );
+        backdrop-filter: blur(24px);
+        border: 1px solid rgba(255, 255, 255, 0.18);
+      }
+      .light-mode .glass-card {
+        background: linear-gradient(
+            135deg,
+            rgba(255, 255, 255, 0.48),
+            rgba(255, 255, 255, 0.28)
+          );
+        border-color: rgba(255, 255, 255, 0.32);
+      }
+      .hero-gradient {
+        /* pull the hero up underneath the fixed header so no white gap shows */
+        margin-top: calc(-1 * var(--header-height));
+        padding-top: calc(var(--header-height));
+        background: radial-gradient(
+            circle at 20% 20%,
+            rgba(97, 218, 251, 0.32),
+            transparent 45%
+          ),
+          radial-gradient(
+            circle at 80% 0%,
+            rgba(147, 112, 219, 0.24),
+            transparent 43%
+          ),
+          radial-gradient(
+            circle at 50% 100%,
+            rgba(255, 174, 94, 0.28),
+            transparent 40%
+          ),
+          rgba(12, 12, 14, 0.92);
+      }
+      .light-mode .hero-gradient {
+        background: radial-gradient(
+            circle at 20% 20%,
+            rgba(97, 218, 251, 0.18),
+            transparent 45%
+          ),
+          radial-gradient(
+            circle at 80% 0%,
+            rgba(147, 112, 219, 0.12),
+            transparent 43%
+          ),
+          radial-gradient(
+            circle at 50% 100%,
+            rgba(255, 174, 94, 0.16),
+            transparent 40%
+          ),
+          rgba(246, 246, 248, 0.96);
+      }
+      .nav-blur {
+        backdrop-filter: blur(20px);
+        background: rgba(12, 12, 16, 0.72);
+      }
+      .light-mode .nav-blur {
+        background: rgba(246, 246, 248, 0.82);
+      }
+      .language-select {
+        border-radius: 9999px;
+        padding: 0.5rem 1.5rem;
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        color: inherit;
+        transition: border-color 0.2s ease, background 0.2s ease;
+      }
+      .language-select:focus {
+        outline: none;
+        box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.4);
+      }
+      .light-mode .language-select {
+        background: rgba(255, 255, 255, 0.92);
+        color: #0f172a;
+        border-color: rgba(15, 23, 42, 0.16);
+      }
+      .cta-button {
+        border-radius: 14px;
+      }
+      /* Centered single-column layout inspired by the reference: keep
+         content constrained in the middle of the viewport and stack
+         text and imagery vertically for comfortable reading. */
+      .site-center {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 3.5rem 1.25rem;
+      }
+      .section-inner {
+        display: flex;
+        flex-direction: column;
+        gap: 1.75rem;
+        align-items: center;
+        text-align: center;
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 2.5rem 1rem;
+      }
+      .section-inner .text-col { width: 100%; }
+      .section-inner .media-col { width: 100%; display:flex; justify-content:center; }
+      .section-inner img.illustration {
+        width: 100%;
+        max-width: 760px;
+        height: auto;
+        border-radius: 12px;
+        box-shadow: 0 10px 30px rgba(2,6,23,0.06);
+      }
+
+      /* Card + media row used in workflow: responsive stack on small screens,
+         side-by-side on medium+ screens. Use .reverse to flip image/card side. */
+      .card-with-media {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        align-items: stretch;
+        width: 100%;
+      }
+      .card-with-media .card-media img { width: 100%; height: auto; border-radius: 10px; box-shadow: 0 8px 20px rgba(2,6,23,0.06); }
+      @media (min-width: 768px) {
+        .card-with-media { flex-direction: row; align-items: center; }
+        .card-with-media.reverse { flex-direction: row-reverse; }
+        .card-with-media .glass-card { flex: 1 1 0%; }
+        .card-with-media .card-media { flex: 0 0 260px; display:flex; justify-content:center; }
+        .card-with-media .card-media img { max-width: 340px; }
+      }
+      @media (max-width: 900px) {
+        .site-center, .section-inner { padding-left: 1rem; padding-right: 1rem; }
+      }
+      /* Make non-hero sections use a light background and add a subtle
+         divider between sections so the page reads clearly. The hero keeps
+         its own gradient (it has class .hero-gradient). */
+      section:not(.hero-gradient) {
+        background: #ffffff !important;
+        border-top: 1px solid #e6e6e9;
+      }
+
+      /* Add a small visual gap so the divider breathes on small screens */
+      @media (max-width: 768px) {
+        section:not(.hero-gradient) {
+          padding-top: 2.5rem;
+          padding-bottom: 2.5rem;
+        }
+      }
+    </style>
+  </head>
+  <body class="transition-colors duration-300">
+    <header class="fixed inset-x-0 top-0 z-50 border-b border-white/10 nav-blur">
+      <div class="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
+        <div class="flex items-center gap-3">
+          <img
+            src="./assets/app-logo.png"
+            alt="openfolder logo"
+            class="h-10 w-10"
+            data-i18n="logo.alt"
+            data-i18n-attr="alt"
+          />
+          <span class="text-lg font-semibold tracking-tight">OpenFolder</span>
+        </div>
+        <div class="flex items-center gap-3">
+          <label for="language-switcher" class="sr-only" data-i18n="nav.languageLabel"
+            >Language selector</label
+          >
+          <select
+            id="language-switcher"
+            class="language-select text-sm"
+            aria-label="Language selector"
+            data-i18n="nav.languageLabel"
+            data-i18n-attr="aria-label"
+          >
+            <option value="en">English</option>
+            <option value="zh-Hans">中文（简体）</option>
+          </select>
+          <!-- <a
+            href="#purchase"
+            class="cta-button inline-flex items-center focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-300 transition hover:opacity-90"
+          >
+            <img
+              src="./assets/app-store-badge.svg"
+              alt="Download on the App Store"
+              class="h-12 w-auto"
+              data-i18n="cta.purchase"
+              data-i18n-attr="alt"
+            />
+            <span class="sr-only" data-i18n="cta.purchase">Download on the App Store</span>
+          </a> -->
+        </div>
+      </div>
+    </header>
+
+    <main class="pt-24">
+      <section class="hero-gradient relative overflow-hidden border-b border-white/10">
+        <div class="site-center">
+          <div class="text-center">
+            <span class="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs uppercase tracking-[0.2em] text-sky-600/90" data-i18n="badge.category">macOS menu bar utility</span>
+            <h1 class="text-5xl font-semibold tracking-tight md:text-6xl mt-6" data-i18n="hero.heading">Two taps to open your favorite files.</h1>
+            <p class="text-lg md:text-xl mt-4 max-w-2xl mx-auto" data-i18n="hero.subheading">OpenFolder keeps your most-used files and apps within reach. One menu bar icon. Zero friction. Available now on the App Store.</p>
+            <div class="mt-8 flex justify-center gap-4">
+              <a href="#purchase" class="cta-button inline-flex items-center justify-center transition hover:opacity-95">
+                <img src="./assets/app-store-badge.svg" alt="Download on the App Store" class="h-12 w-auto" data-i18n="cta.purchase" data-i18n-attr="alt" />
+                <span class="sr-only" data-i18n="cta.purchase">Download on the App Store</span>
+              </a>
+            </div>
+          </div>
+
+          <div class="mt-12 flex justify-center">
+            <div class="glass-card w-full max-w-4xl rounded-3xl p-4 shadow-[0_32px_64px_rgba(2,6,23,0.06)]">
+              <img src="./assets/openfolder1.png" alt="openfolder menu panel screenshot" class="w-full rounded-2xl object-cover" data-i18n="hero.imageAlt" data-i18n-attr="alt" />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="workflow">
+        <div class="section-inner">
+          <div class="text-col">
+            <h2 class="text-3xl font-semibold tracking-tight" data-i18n="section.workflow.title">Your flow in three calm steps</h2>
+            <p class="mt-4 text-sm max-w-2xl mx-auto" data-i18n="section.workflow.subtitle">Streamlined for muscle memory. No clutter, just the path from idea to action.</p>
+          </div>
+
+          <div class="text-col" style="width:100%;">
+            <div class="flex flex-col gap-6 mt-6">
+              <!-- First card: image on the right -->
+              <div class="card-with-media">
+                <div class="glass-card flex flex-col items-start rounded-3xl p-8 text-left">
+                  <span class="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-base font-semibold">01</span>
+                  <h3 class="mb-2 text-xl font-semibold" data-i18n="workflow.step1.title">Add your favorites</h3>
+                  <p class="text-sm" data-i18n="workflow.step1.body">Drag files, folders, or apps into the panel. OpenFolder keeps them ready with security-scoped bookmarks.</p>
+                </div>
+                <div class="card-media" aria-hidden="true">
+                  <img src="./assets/openfolder1.png" alt="illustration" />
+                </div>
+              </div>
+
+              <!-- Second card: image on the left -->
+              <div class="card-with-media reverse">
+                <div class="glass-card flex flex-col items-start rounded-3xl p-8 text-left">
+                  <span class="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-base font-semibold">02</span>
+                  <h3 class="mb-2 text-xl font-semibold" data-i18n="workflow.step2.title">Pop open from the menu bar</h3>
+                  <p class="text-sm" data-i18n="workflow.step2.body">One click on the status icon (or a keyboard shortcut) reveals your curated list in a glass panel.</p>
+                </div>
+                <div class="card-media" aria-hidden="true">
+                  <img src="./assets/openfolder2.png" alt="illustration" />
+                </div>
+              </div>
+
+              <!-- Third card: image on the right -->
+              <div class="card-with-media">
+                <div class="glass-card flex flex-col items-start rounded-3xl p-8 text-left">
+                  <span class="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-base font-semibold">03</span>
+                  <h3 class="mb-2 text-xl font-semibold" data-i18n="workflow.step3.title">Launch in two taps</h3>
+                  <p class="text-sm" data-i18n="workflow.step3.body">Tap your favorite and go. OpenFolder remembers alternate apps and adapts to your workflow.</p>
+                </div>
+                <div class="card-media" aria-hidden="true">
+                  <img src="./assets/openfolder3.png" alt="illustration" />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Testimonials section removed per request -->
+
+      <section id="faq">
+        <div class="section-inner">
+          <div class="text-col">
+            <h2 class="text-3xl font-semibold tracking-tight" data-i18n="section.faq.title">Answers before you buy</h2>
+            <p class="mt-4 text-sm max-w-2xl mx-auto" data-i18n="section.faq.subtitle"></p>
+            <div class="space-y-6 mt-6">
+              <details class="glass-card group rounded-3xl border p-6" open>
+                <summary class="cursor-pointer text-base font-semibold transition group-open:text-sky-300" data-i18n="faq.purchase.title">How does the one-time purchase work?</summary>
+                <p class="mt-3 text-sm" data-i18n="faq.purchase.body">Purchase through the Mac App Store (or a direct license, when available) to unlock every current feature and future updates at no additional charge.</p>
+              </details>
+
+              <details class="glass-card group rounded-3xl border p-6">
+                <summary class="cursor-pointer text-base font-semibold transition group-open:text-sky-300" data-i18n="faq.refund.title">What is your refund policy?</summary>
+                <p class="mt-3 text-sm" data-i18n="faq.refund.body">App Store purchases follow Apple’s refund guidelines. Reach out through Report a Problem within 14 days. Direct licenses include a 14-day money-back guarantee—just email us.</p>
+              </details>
+
+              <details class="glass-card group rounded-3xl border p-6">
+                <summary class="cursor-pointer text-base font-semibold transition group-open:text-sky-300" data-i18n="faq.supported.title">What macOS versions are supported?</summary>
+                <p class="mt-3 text-sm" data-i18n="faq.supported.body">OpenFolder supports macOS Ventura (13.0) and newer, optimized for Apple silicon and Intel machines alike.</p>
+              </details>
+
+              <details class="glass-card group rounded-3xl border p-6">
+                <summary class="cursor-pointer text-base font-semibold transition group-open:text-sky-300" data-i18n="faq.support.title">How can I get support or share feedback?</summary>
+                <p class="mt-3 text-sm" data-i18n="faq.support.body" data-i18n-html="true">For support, please use the App Store Report a Problem flow or consult our documentation for help and release notes.</p>
+              </details>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="purchase">
+        <div class="section-inner">
+          <div class="text-col">
+            <h2 class="text-3xl font-semibold tracking-tight" data-i18n="section.purchase.title">Get OpenFolder on the App Store.</h2>
+            <p class="text-sm mt-2 max-w-xl mx-auto" data-i18n="section.purchase.subtitle">Purchase once to unlock every update and feature we ship. No subscriptions. No nags.</p>
+            <div class="mt-6 flex justify-center gap-4">
+              <a href="https://apps.apple.com" class="cta-button inline-flex items-center justify-center transition hover:opacity-95">
+                <img src="./assets/app-store-badge.svg" alt="Download on the App Store" class="h-12 w-auto" data-i18n="cta.purchase" data-i18n-attr="alt" />
+                <span class="sr-only" data-i18n="cta.purchase">Download on the App Store</span>
+              </a>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="bg-slate-950 border-t border-white/10">
+      <div class="mx-auto flex max-w-6xl flex-col gap-6 px-6 py-12 text-sm text-white md:flex-row md:items-center md:justify-between">
+        <div class="flex items-center gap-3">
+          <img
+            src="./assets/app-logo.png"
+            alt="openfolder logo mark"
+            class="h-8 w-8"
+            data-i18n="logo.markAlt"
+            data-i18n-attr="alt"
+          />
+          <span data-i18n="footer.tagline">©2025 OpenFolder. Built in glass.</span>
+        </div>
+        <div class="flex flex-wrap items-center gap-6">
+          <a href="/legal/privacy.html" class="hover:text-sky-300 transition" data-i18n="footer.privacy">Privacy Policy</a>
+          <a href="/legal/terms.html" class="hover:text-sky-300 transition" data-i18n="footer.terms">Terms of Use</a>
+        </div>
+      </div>
+    </footer>
+
+    <script>
+      const translations = {
+        en: {
+          'meta.title': 'OpenFolder · Two-Tap File Launcher for macOS',
+          'meta.description': 'OpenFolder is a macOS menu bar tool that opens your most-used files and apps in two taps. Available on the App Store.',
+          'nav.features': 'Features',
+          'nav.workflow': 'Workflow',
+          'nav.testimonials': 'Testimonials',
+          'nav.faq': 'FAQ',
+          'nav.languageLabel': 'Language selector',
+          'badge.category': 'macOS menu bar utility',
+          'hero.heading': 'Two taps to open your favorite files.',
+          'hero.subheading': 'OpenFolder keeps your most-used files and apps within reach. One menu bar icon. Zero friction. Available now on the App Store.',
+          'cta.purchase': 'Get on the App Store',
+          'cta.learnMore': 'Learn More',
+          'hero.card.caption': 'Drag & drop to pin favorites.',
+          'hero.card.shortcut': '⌘⇧O',
+          'section.features.title': 'Designed for effortless focus',
+          'section.features.subtitle': 'Every interaction is tuned to Apple’s Human Interface guidelines: clean glass surfaces, precise spacing, and instant feedback.',
+          'feature.instant.title': 'Launch favorites instantly',
+          'feature.instant.body': 'One tap on the menu bar reveals your curated list. Open files, folders, or apps in the default or alternate app without leaving the flow.',
+          'feature.batch.title': 'Batch add with drag & drop',
+          'feature.batch.body': 'Drop multiple items to the floating panel. We sanitize metadata, create secure bookmarks, and stay sandbox-friendly.',
+          'feature.preferences.title': 'Preferences with glass polish',
+          'feature.preferences.body': 'A blended SwiftUI + AppKit window keeps every setting within an 8pt grid, complete with accessibility-ready labels and hints.',
+          'section.workflow.title': 'Your flow in three calm steps',
+          'section.workflow.subtitle': 'Streamlined for muscle memory. No clutter, just the path from idea to action.',
+          'workflow.step1.title': 'Add your favorites',
+          'workflow.step1.body': 'Drag files, folders, or apps into the panel. OpenFolder keeps them ready with security-scoped bookmarks.',
+          'workflow.step2.title': 'Pop open from the menu bar',
+          'workflow.step2.body': 'One click on the status icon (or a keyboard shortcut) reveals your curated list in a glass panel.',
+          'workflow.step3.title': 'Launch in two taps',
+          'workflow.step3.body': 'Tap your favorite and go. OpenFolder remembers alternate apps and adapts to your workflow.',
+          'section.testimonials.title': 'Craft that designers and developers notice',
+          'testimonial.first.quote': '“openfolder trimmed my morning checklist to seconds. Nothing else captures this glass aesthetic without getting in the way.”',
+          'testimonial.first.name': 'Lina Chen',
+          'testimonial.first.role': 'Product Designer, Rain Labs',
+          'testimonial.second.quote': '“My build scripts, test folders, and release notes live one click away. Paying once for this kind of polish was a no-brainer.”',
+          'testimonial.second.name': 'Jordan Blake',
+          'testimonial.second.role': 'macOS Engineer, Shiftline',
+          'section.faq.title': 'Answers before you buy',
+          'faq.purchase.title': 'How does the one-time purchase work?',
+          'faq.purchase.body': 'Purchase through the Mac App Store (or a direct license, when available) to unlock every current feature and future updates at no additional charge.',
+          'faq.refund.title': 'What is your refund policy?',
+          'faq.refund.body': 'App Store purchases follow Apple’s refund guidelines. Reach out through Report a Problem within 14 days. Direct licenses include a 14-day money-back guarantee—just email us.',
+          'faq.supported.title': 'What macOS versions are supported?',
+          'faq.supported.body': 'OpenFolder supports macOS Ventura (13.0) and newer, optimized for Apple silicon and Intel machines alike.',
+          'faq.support.title': 'How can I get support or share feedback?',
+          'faq.support.body': 'For support, please use the App Store Report a Problem flow or consult our documentation for help and release notes.',
+          'section.purchase.title': 'Get OpenFolder on the App Store.',
+          'section.purchase.subtitle': 'Purchase once to unlock every update and feature we ship. No subscriptions. No nags.',
+          'cta.talk': 'Talk with us',
+          'footer.tagline': '©2025 OpenFolder. Built in glass.',
+          'footer.contact': 'fzero17@qq.com',
+          'footer.twitter': 'Twitter',
+          'footer.weibo': 'Weibo',
+          'footer.privacy': 'Privacy Policy',
+          'footer.terms': 'Terms of Use',
+          'logo.alt': 'OpenFolder logo',
+          'hero.imageAlt': 'OpenFolder menu panel screenshot',
+          'logo.markAlt': 'OpenFolder logo mark'
+        },
+        'zh-Hans': {
+          'meta.title': 'OpenFolder · 两步打开常用文件',
+          'meta.description': 'OpenFolder 是一款 macOS 菜单栏工具，让你两步打开常用的文件和应用。现已上架 App Store。',
+          'nav.features': '功能亮点',
+          'nav.workflow': '工作流',
+          'nav.testimonials': '用户评价',
+          'nav.faq': '常见问题',
+          'nav.languageLabel': '语言选择',
+          'badge.category': 'macOS 菜单栏工具',
+          'hero.heading': '两步打开你喜爱的文件。',
+          'hero.subheading': 'OpenFolder 让常用的文件和应用触手可及。一个菜单栏图标，零阻力体验。现已上架 App Store。',
+          'cta.purchase': '在AppStore购买',
+          'cta.learnMore': '了解更多',
+          'hero.card.caption': '拖放即可固定收藏。',
+          'hero.card.shortcut': '⌘⇧O',
+          'section.features.title': '为轻松专注而设计',
+          'section.features.subtitle': '每一次交互都遵循 Apple 人机界面指南：纯净的玻璃质感、精准的留白与即时反馈。',
+          'feature.instant.title': '立即启动常用项目',
+          'feature.instant.body': '点击一次菜单栏就能展开你精心整理的列表。文件、文件夹和应用都能在默认或备用应用中快速打开，不中断专注。',
+          'feature.batch.title': '拖放批量添加',
+          'feature.batch.body': '把多个项目拖到浮动面板，我们会清理元数据、创建安全书签，并保持对沙盒的友好。',
+          'feature.preferences.title': '玻璃质感的偏好设置',
+          'feature.preferences.body': 'SwiftUI 与 AppKit 混合的设置窗口遵循 8pt 网格，并包含完善的可访问性标签与提示。',
+          'section.workflow.title': '你的流程，只需三个平静步骤',
+          'section.workflow.subtitle': '为肌肉记忆量身打造。没有冗余，只有从想法到执行的最短路径。',
+          'workflow.step1.title': '加入你的收藏',
+          'workflow.step1.body': '将文件、文件夹或应用拖入面板，openfolder 会用安全作用域书签替你保留访问权限。',
+          'workflow.step2.title': '从菜单栏唤出',
+          'workflow.step2.body': '点击状态栏图标（或使用快捷键）即可在玻璃质感的面板中展开列表。',
+          'workflow.step3.title': '两步完成启动',
+          'workflow.step3.body': '点一下你收藏的项目就能立即启动，openfolder 记住备用应用并适配你的工作流。',
+          'section.testimonials.title': '连设计师与工程师都认可的打磨',
+          'testimonial.first.quote': '“openfolder 让我的晨间检查在几秒内完成。没有其他工具能在不打扰我的前提下呈现这样的玻璃质感。”',
+          'testimonial.first.name': 'Lina Chen',
+          'testimonial.first.role': 'Rain Labs 产品设计师',
+          'testimonial.second.quote': '“我的构建脚本、测试文件夹和发布说明都只需点击一次就能打开。这种打磨只需一次购买就能拥有，毫不犹豫。”',
+          'testimonial.second.name': 'Jordan Blake',
+          'testimonial.second.role': 'Shiftline macOS 工程师',
+          'section.faq.title': '购买前的常见问题',
+          'faq.purchase.title': '一次性购买是怎样运作的？',
+          'faq.purchase.body': '通过 Mac App Store 一次性购买（或在提供时获取直销许可），即可解锁当前全部功能并享受后续更新，无需额外费用。',
+          'faq.refund.title': '退款政策是什么？',
+          'faq.refund.body': 'App Store 购买遵循 Apple 的退款指南，可在 14 天内通过“报告问题”申请。直销许可也提供 14 天退款保证，发邮件联系我们即可。',
+          'faq.supported.title': '支持哪些 macOS 版本？',
+          'faq.supported.body': 'OpenFolder 支持 macOS Ventura（13.0）及以上版本，对 Apple 芯片和 Intel 设备都做了优化。',
+          'faq.support.title': '如何获得支持或反馈意见？',
+          'faq.support.body': '如需支持，请通过 App Store 的“报告问题”流程或查阅帮助文档与更新说明。',
+          'section.purchase.title': '在 App Store 获取 OpenFolder。',
+          'section.purchase.subtitle': '一次购买，后续所有更新与功能全都包含。没有订阅，没有打扰。',
+          'cta.talk': '联系我们',
+          'footer.tagline': '©2025 openfolder。由玻璃质感打造。',
+          'footer.contact': 'fzero17@qq.com',
+          'footer.twitter': 'Twitter',
+          'footer.weibo': '微博',
+          'footer.privacy': '隐私政策',
+          'footer.terms': '使用条款',
+          'logo.alt': 'OpenFolder 标志',
+          'hero.imageAlt': 'OpenFolder 菜单面板截图',
+          'logo.markAlt': 'OpenFolder 图标标志'
+        }
+      };
+
+      const LANG_STORAGE_KEY = 'openfolder-web-lang';
+
+      const applyTranslations = (locale) => {
+        const strings = translations[locale] ?? translations.en;
+        document.documentElement.lang = locale;
+        document.documentElement.dir = 'ltr';
+
+        document.querySelectorAll('[data-i18n]').forEach((el) => {
+          const key = el.dataset.i18n;
+          const attr = el.dataset.i18nAttr;
+          const isHtml = el.dataset.i18nHtml === 'true';
+          const translation = strings[key];
+          if (!translation) {
+            return;
+          }
+          if (attr) {
+            el.setAttribute(attr, translation);
+          } else if (isHtml) {
+            el.innerHTML = translation;
+          } else {
+            el.textContent = translation;
+          }
+        });
+
+        if (strings['meta.title']) {
+          document.title = strings['meta.title'];
+        }
+        const descriptionMeta = document.querySelector('meta[name="description"]');
+        if (descriptionMeta && strings['meta.description']) {
+          descriptionMeta.setAttribute('content', strings['meta.description']);
+        }
+      };
+
+      const resolveInitialLocale = () => {
+        const navigatorLanguages = Array.isArray(navigator.languages)
+          ? navigator.languages
+          : [navigator.language];
+        const matchesZh = (lang) =>
+          typeof lang === 'string' && lang.toLowerCase().startsWith('zh');
+        if (navigatorLanguages.some(matchesZh)) {
+          return 'zh-Hans';
+        }
+        return 'en';
+      };
+
+      const initLocalization = () => {
+        const languageSelect = document.getElementById('language-switcher');
+        let storedLocale = null;
+
+        try {
+          storedLocale = window.localStorage.getItem(LANG_STORAGE_KEY);
+        } catch (error) {
+          storedLocale = null;
+        }
+
+        const initialLocale =
+          storedLocale && translations[storedLocale]
+            ? storedLocale
+            : resolveInitialLocale();
+
+        applyTranslations(initialLocale);
+
+        try {
+          window.localStorage.setItem(LANG_STORAGE_KEY, initialLocale);
+        } catch (error) {
+          // ignore storage errors
+        }
+
+        if (languageSelect) {
+          languageSelect.value = translations[initialLocale] ? initialLocale : 'en';
+          languageSelect.addEventListener('change', (event) => {
+            const nextLocale = event.target.value;
+            const targetLocale = translations[nextLocale] ? nextLocale : 'en';
+            applyTranslations(targetLocale);
+            try {
+              window.localStorage.setItem(LANG_STORAGE_KEY, targetLocale);
+            } catch (error) {
+              // ignore storage errors
+            }
+          });
+        }
+      };
+
+      initLocalization();
+
+      const prefersLight = window.matchMedia('(prefers-color-scheme: light)');
+      const applyMode = (e) => {
+        document.documentElement.classList.toggle('light-mode', e.matches);
+        document.body.classList.toggle('bg-white', e.matches);
+        document.body.classList.toggle('text-slate-900', e.matches);
+      };
+      applyMode(prefersLight);
+      prefersLight.addEventListener('change', applyMode);
+
+      document
+        .querySelectorAll('a[href^="#"]')
+        .forEach((anchor) =>
+          anchor.addEventListener('click', function (e) {
+            const target = document.querySelector(this.getAttribute('href'));
+            if (!target) return;
+            e.preventDefault();
+            target.scrollIntoView({ behavior: 'smooth' });
+          })
+        );
+    </script>
+  </body>
+</html>
